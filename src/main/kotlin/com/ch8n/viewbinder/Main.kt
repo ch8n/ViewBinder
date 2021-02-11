@@ -1,5 +1,6 @@
 package com.ch8n.viewbinder
 
+import com.ch8n.viewbinder.utils.appendBuildFeatureTemplate
 import java.io.File
 
 object Config {
@@ -30,7 +31,6 @@ fun main() {
 
     val oneFile = File(requireNotNull(dependencyBuildFiles.getOrNull(0)))
     val content = oneFile.readText(Charsets.UTF_8)
-    println(content)
 
     when {
         content.contains("buildFeatures") -> {
@@ -40,12 +40,15 @@ fun main() {
         }
         else -> {
             // append buildFeatures.viewBinding = true
+            val (before, after) = content.split("android {")
+            val updatedContent = appendBuildFeatureTemplate(before, after)
+            println(updatedContent)
+            oneFile.bufferedWriter().use { out ->
+                out.write(updatedContent)
+            }
         }
-    }
-
-    oneFile.bufferedWriter().use { out ->
-        out.write(fileContent)
     }
 
 
 }
+
