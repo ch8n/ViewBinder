@@ -1,6 +1,6 @@
 package com.ch8n.viewbinder.utils
 
-fun appendBuildFeatureTemplate(before: String, after: String): String {
+fun appendBuildFeatureViewBindingTemplate(before: String, after: String): String {
     return """
 ${before.trim()}
 
@@ -10,3 +10,15 @@ android {
 
 """.trimIndent()
 }
+
+fun appendViewBindingTemplate(before: String, after: String): String {
+    return """
+${before.trim()}
+    buildFeatures {
+        viewBinding = true
+    ${after.trim()}
+
+""".trimIndent()
+}
+
+
