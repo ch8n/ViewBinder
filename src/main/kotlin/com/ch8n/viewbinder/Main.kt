@@ -1,8 +1,10 @@
 package com.ch8n.viewbinder
 
+import com.ch8n.viewbinder.utils.Command
 import com.ch8n.viewbinder.utils.appendBuildFeatureViewBindingTemplate
 import com.ch8n.viewbinder.utils.appendViewBindingTemplate
 import java.io.File
+
 
 object Config {
     val projectRoot: String = "/Users/chetangupta/StudioProjects/ColorChetan"
@@ -45,7 +47,6 @@ fun main() {
             }
         }
         else -> {
-            // append buildFeatures.viewBinding = true
             val (before, after) = content.split("android {")
             val updatedContent = appendBuildFeatureViewBindingTemplate(before, after)
             println(updatedContent)
@@ -55,6 +56,18 @@ fun main() {
         }
     }
 
+    println("------- updated file -------")
+
+    println("------- commands file -------")
+
+    val results = Command.execute(
+        commands = arrayOf(
+            "ls"
+        ),
+        isLivePrint = true,
+        isSkipException = false
+    )
+    println(results)
 
 }
 
