@@ -49,6 +49,82 @@ fun main() {
     }
 
     addTemplateOfViewBindingActivity(selectedModules.get(0))
+    val activities = scanActivities(selectedModules.get(0))
+    if (activities.isEmpty()) {
+        println("no activity to modify!!")
+        return
+    }
+
+    updateSuperClassToViewBind(activities)
+
+}
+
+fun updateSuperClassToViewBind(activities: List<File>) {
+    // todo solve for multiple class
+    val activity = activities.get(0)
+    val content = activity.readText(Charsets.UTF_8)
+    // todo
+    // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity
+    // 2.replace AppCompatActivity => ViewBindingActivity<VB>
+    // 3.find line that contain -> R.layout.activity_main
+    // 4. create viewbinding name of layout => activity_main -> ActivityMainBinding
+    // 5. replace VB to viewbindingName
+    // 6. add import of viewbinding >> import com.example.colorapp.databinding.ActivityMainBinding
+    // find package name
+    // append naming convention
+    // 7. add functions
+    // 1. override val bindingInflater: (LayoutInflater) -> ActivityMainBinding get() = ActivityMainBinding::inflate
+    // 2. add setup()
+    // paste all the code from onCreate to step except line
+    // super.onCreate(savedInstanceState)
+    // setContentView(R.layout.activity_main)
+
+
+}
+
+fun scanActivities(moduleGradlePath: String): List<File> {
+    val modulePath = moduleGradlePath.split("/").dropLast(1).joinToString(separator = "/")
+    val module = File(modulePath)
+    val files = module.walk()
+        .filter { it.path.contains("app/src/main/java") }
+        .toList()
+
+    var output = """
+    ----------------------    
+    "finding modules files..."
+    ${files.joinToString(separator = "\n").trimIndent()}
+    ----------------------
+    """.trimIndent()
+
+    println(output)
+
+    val kotlinFiles = files
+        .filter { it.path.contains(".kt") }
+
+    output = """
+    ----------------------    
+    "Found Kotlin files..."
+    ${kotlinFiles.joinToString(separator = "\n")}
+    ----------------------
+    """.trimIndent()
+
+    println(output)
+
+    val activities = kotlinFiles.filter {
+        val content = it.readText(Charsets.UTF_8)
+        !it.path.contains("base") && content.contains("AppCompatActivity")
+    }
+
+    output = """
+    ----------------------    
+    "Found Activities files..."
+    ${activities.joinToString(separator = "\n")}
+    ----------------------
+    """.trimIndent()
+
+    println(output)
+
+    return activities
 
 }
 
@@ -98,9 +174,10 @@ fun addTemplateOfViewBindingActivity(moduleGradlePath: String) {
     }
 
     //val template = File("./src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
-    val template = File("/Users/chetangupta/Documents/chetan/kotlin/ViewBindingMigrator/src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
+    val template =
+        File("/Users/chetangupta/Documents/chetan/kotlin/ViewBindingMigrator/src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
 
-    if (!template.exists()){
+    if (!template.exists()) {
         println("Activity Template not found!")
         return
     }
