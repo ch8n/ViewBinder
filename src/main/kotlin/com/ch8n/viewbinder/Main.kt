@@ -5,7 +5,6 @@ import com.ch8n.viewbinder.utils.appendBuildFeatureViewBindingTemplate
 import com.ch8n.viewbinder.utils.appendBuildFeatureGradle
 import com.yg.kotlin.inquirer.components.promptConfirm
 import com.yg.kotlin.inquirer.components.promptInput
-import com.yg.kotlin.inquirer.components.promptListMultiObject
 import com.yg.kotlin.inquirer.core.Choice
 import com.yg.kotlin.inquirer.core.KInquirer
 import java.io.File
@@ -19,13 +18,10 @@ object Config {
 
 fun main() {
 
-    //copy files
-    addTemplateOfViewBindingActivity("/Users/chetangupta/StudioProjects/ColorChetan/app")
-
-
-    return
-
-    val rootPath: String = KInquirer.promptInput("Please paste root project path : ")
+    val rootPath: String = KInquirer.promptInput(
+        message = "Please paste root project path : ",
+        default = "/Users/chetangupta/StudioProjects/ColorChetan"
+    )
     checkProjectExist(rootPath)
 
     val buildFiles = getBuildFiles(rootPath)
@@ -52,30 +48,63 @@ fun main() {
         return
     }
 
+    addTemplateOfViewBindingActivity(selectedModules.get(0))
 
 }
 
-fun addTemplateOfViewBindingActivity(modulePath: String) {
+fun addTemplateOfViewBindingActivity(moduleGradlePath: String) {
+    val modulePath = moduleGradlePath.split("/").dropLast(1).joinToString(separator = "/")
     val module = File(modulePath)
     val files = module.walk()
         .filter { it.path.contains("app/src/main/java") }
         .toList()
 
-    println(files.joinToString(separator = "\n"))
+    var output = """
+    ----------------------    
+    "finding modules files..."
+    ${files.joinToString(separator = "\n").trimIndent()}
+    ----------------------
+    """.trimIndent()
+
+    println(output)
 
     val moduleRoot = files
         .filter { !it.path.contains(".kt") }
-        .first {
+        .firstOrNull {
             it.path.split("java").get(1).split("/").size == 4
         }
+
+    output = """
+    ----------------------    
+    "Found modules root..."
+    $moduleRoot
+    ----------------------
+    """.trimIndent()
+
+    println(output)
+    moduleRoot ?: return
 
     val basePath = "$moduleRoot/base"
     val baseFile = File(basePath)
     if (!baseFile.exists()) {
+        output = """
+    ----------------------    
+    "created base folder..."
+    ${baseFile.path}
+    ----------------------
+    """.trimIndent()
+        println(output)
         baseFile.mkdir()
     }
 
-    val template = File("./src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
+    //val template = File("./src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
+    val template = File("/Users/chetangupta/Documents/chetan/kotlin/ViewBindingMigrator/src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
+
+    if (!template.exists()){
+        println("Activity Template not found!")
+        return
+    }
+
     var viewBindingActivityTemplate = template.readText(Charsets.UTF_8)
     val packageName = basePath.split("/").takeLast(4).joinToString(separator = ".")
     viewBindingActivityTemplate = "package ${packageName}\n\n${viewBindingActivityTemplate}"
@@ -136,9 +165,11 @@ fun getModulesToInstallViewBinding(dependencyBuildFiles: List<String>): List<Str
         return emptyList()
     }
 
-    val selectedModules: List<String> =
-        KInquirer.promptListMultiObject("[space to select] : select module to install?", moduleName)
 
+    // TODO later add multiple module support
+//    val selectedModules: List<String> =
+//        KInquirer.promptListMultiObject("[space to select] : select module to install?", moduleName)
+    val selectedModules = dependencyBuildFiles
     var output = """
     ----------------------    
     Selected modules:
