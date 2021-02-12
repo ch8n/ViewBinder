@@ -20,7 +20,8 @@ object Config {
 fun main() {
 
     //copy files
-    addTemplateOfViewBindingActivity(listOf("/Users/chetangupta/StudioProjects/ColorChetan/app"))
+    addTemplateOfViewBindingActivity("/Users/chetangupta/StudioProjects/ColorChetan/app")
+
 
     return
 
@@ -51,14 +52,10 @@ fun main() {
         return
     }
 
-    //copy files
-    addTemplateOfViewBindingActivity(selectedModules)
-    //Users/chetangupta/StudioProjects/ColorChetan/app
 
 }
 
-fun addTemplateOfViewBindingActivity(modules: List<String>) {
-    val modulePath = modules.get(0)
+fun addTemplateOfViewBindingActivity(modulePath: String) {
     val module = File(modulePath)
     val files = module.walk()
         .filter { it.path.contains("app/src/main/java") }
@@ -78,10 +75,28 @@ fun addTemplateOfViewBindingActivity(modules: List<String>) {
         baseFile.mkdir()
     }
 
-    val template = File("./")
-    println(template.path)
+    val template = File("./src/main/kotlin/com/ch8n/viewbinder/utils/TemplateBaseViewBindingActivity.txt")
+    var viewBindingActivityTemplate = template.readText(Charsets.UTF_8)
+    val packageName = basePath.split("/").takeLast(4).joinToString(separator = ".")
+    viewBindingActivityTemplate = "package ${packageName}\n\n${viewBindingActivityTemplate}"
 
-    // todo done making baseclass copy template in base
+    val viewBindingActivityKTPath = "$baseFile/ViewBindingActivity.kt"
+    val viewBindingActivityKTFile = File(viewBindingActivityKTPath)
+    if (!viewBindingActivityKTFile.exists()) {
+        val output = """
+    ------------------
+    Wrote ViewBinding Activity to project
+    ------------------
+    $viewBindingActivityTemplate
+    -----------------    
+    """.trimIndent()
+
+        println(output)
+
+        viewBindingActivityKTFile.bufferedWriter().use { out ->
+            out.write(viewBindingActivityTemplate)
+        }
+    }
 }
 
 
