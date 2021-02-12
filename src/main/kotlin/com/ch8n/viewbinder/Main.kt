@@ -1,7 +1,8 @@
 package com.ch8n.viewbinder
 
+
 import com.ch8n.viewbinder.utils.appendBuildFeatureViewBindingTemplate
-import com.ch8n.viewbinder.utils.appendViewBindingTemplate
+import com.ch8n.viewbinder.utils.appendBuildFeatureGradle
 import com.yg.kotlin.inquirer.components.promptConfirm
 import com.yg.kotlin.inquirer.components.promptInput
 import com.yg.kotlin.inquirer.components.promptListMultiObject
@@ -17,6 +18,11 @@ object Config {
 
 
 fun main() {
+
+    //copy files
+    addTemplateOfViewBindingActivity(listOf("/Users/chetangupta/StudioProjects/ColorChetan/app"))
+
+    return
 
     val rootPath: String = KInquirer.promptInput("Please paste root project path : ")
     checkProjectExist(rootPath)
@@ -46,13 +52,36 @@ fun main() {
     }
 
     //copy files
-    addTemplateOfViewBindingActivity(rootPath)
+    addTemplateOfViewBindingActivity(selectedModules)
+    //Users/chetangupta/StudioProjects/ColorChetan/app
 
 }
 
-fun addTemplateOfViewBindingActivity(rootPath: String) {
-    val projectRoot = File(rootPath)
-    projectRoot.walk()
+fun addTemplateOfViewBindingActivity(modules: List<String>) {
+    val modulePath = modules.get(0)
+    val module = File(modulePath)
+    val files = module.walk()
+        .filter { it.path.contains("app/src/main/java") }
+        .toList()
+
+    println(files.joinToString(separator = "\n"))
+
+    val moduleRoot = files
+        .filter { !it.path.contains(".kt") }
+        .first {
+            it.path.split("java").get(1).split("/").size == 4
+        }
+
+    val basePath = "$moduleRoot/base"
+    val baseFile = File(basePath)
+    if (!baseFile.exists()) {
+        baseFile.mkdir()
+    }
+
+    val template = File("./")
+    println(template.path)
+
+    // todo done making baseclass copy template in base
 }
 
 
@@ -168,8 +197,8 @@ fun addViewBindingDependency(modulePath: String) {
     when {
         content.contains("buildFeatures") -> {
             if (!content.contains("viewBinding")) {
-                val (before, after) = content.split("buildFeatures {")
-                val updatedContent = appendViewBindingTemplate(before, after)
+                val (before: String, after: String) = content.split("buildFeatures {")
+                val updatedContent: String = appendBuildFeatureGradle(before, after)
                 println(updatedContent)
                 oneFile.bufferedWriter().use { out ->
                     out.write(updatedContent)
@@ -178,7 +207,7 @@ fun addViewBindingDependency(modulePath: String) {
         }
         else -> {
             val (before, after) = content.split("android {")
-            val updatedContent = appendBuildFeatureViewBindingTemplate(before, after)
+            val updatedContent: String = appendBuildFeatureViewBindingTemplate(before, after)
             println(updatedContent)
             oneFile.bufferedWriter().use { out ->
                 out.write(updatedContent)

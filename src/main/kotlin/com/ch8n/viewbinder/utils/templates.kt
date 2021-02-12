@@ -11,7 +11,7 @@ android {
 """.trimIndent()
 }
 
-fun appendViewBindingTemplate(before: String, after: String): String {
+fun appendBuildFeatureGradle(before: String, after: String): String {
     return """
 ${before.trim()}
     buildFeatures {
