@@ -3,6 +3,8 @@ package com.ch8n.viewbinder
 
 import com.ch8n.viewbinder.utils.appendBuildFeatureViewBindingTemplate
 import com.ch8n.viewbinder.utils.appendBuildFeatureGradle
+import com.ch8n.viewbinder.utils.appendImportViewBindingActivity
+import com.ch8n.viewbinder.utils.removeAppCompatActivityImport
 import com.yg.kotlin.inquirer.components.promptConfirm
 import com.yg.kotlin.inquirer.components.promptInput
 import com.yg.kotlin.inquirer.core.Choice
@@ -17,6 +19,12 @@ object Config {
 
 
 fun main() {
+
+    val activity =
+        listOf(File("/Users/chetangupta/StudioProjects/ColorChetan/app/src/main/java/com/example/colorapp/MainActivity.kt"))
+    updateSuperClassToViewBind(activity)
+
+    return
 
     val rootPath: String = KInquirer.promptInput(
         message = "Please paste root project path : ",
@@ -62,11 +70,51 @@ fun main() {
 fun updateSuperClassToViewBind(activities: List<File>) {
     // todo solve for multiple class
     val activity = activities.get(0)
-    val content = activity.readText(Charsets.UTF_8)
+    val activityContent = activity.readText(Charsets.UTF_8)
+    val packageName = activityContent.reader()
+        .readLines()
+        .getOrNull(0) ?: ""
+
+    val packageNameValue = packageName
+        .split("package")
+        .getOrNull(1)
+        ?.trim() ?: ""
+
+    println(packageName)
+    println("--content---")
+
+    val layoutIdLine = activityContent.reader().readLines()
+        .first { it.contains("R.layout") }
+
+    val layoutFileName = layoutIdLine.split(".").last().dropLast(1)
+    val viewBindClassName = layoutFileName.split("_")
+        .map { it.capitalize() }
+        .joinToString("")
+        .let { "${it}Binding" }
+
+    val (before, after) = activityContent.split(packageName)
+
+    val activityContent_VBImports =
+        appendImportViewBindingActivity(after, packageNameValue, viewBindClassName)
+    println(activityContent_VBImports)
+    println("-======================--")
+
+    val activityContent_VBImportsOpt = removeAppCompatActivityImport(activityContent_VBImports)
+    println(activityContent_VBImportsOpt)
+    println("-======================--")
+
+    val activityContent_vbImports_vbExtends =
+        activityContent_VBImportsOpt.replaceFirst(
+            "AppCompatActivity",
+            "ViewBindingActivity<$viewBindClassName>"
+        )
+    println(activityContent_vbImports_vbExtends)
+
+
     // todo
-    // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity
+    // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity [done]
     // 2.replace AppCompatActivity => ViewBindingActivity<VB>
-    // 3.find line that contain -> R.layout.activity_main
+    // 3.find line that contain -> R.layout.activity_main [done]
     // 4. create viewbinding name of layout => activity_main -> ActivityMainBinding
     // 5. replace VB to viewbindingName
     // 6. add import of viewbinding >> import com.example.colorapp.databinding.ActivityMainBinding
