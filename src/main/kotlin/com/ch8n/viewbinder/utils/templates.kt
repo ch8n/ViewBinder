@@ -21,13 +21,30 @@ android {
 """.trimIndent()
 }
 
-fun appendImportViewBindingActivity(before: String, after: String, packageName: String): String {
+fun appendImportViewBindingActivity(
+    after: String,
+    packageName: String,
+    viewBindingClass: String
+): String {
     return """
-$before
-$packageName
-import com.example.colorapp.base.ViewBindingActivity
+package $packageName
+
+import $packageName.base.ViewBindingActivity
+import $packageName.databinding.$viewBindingClass
 $after    
     """.trimIndent()
 }
+
+fun removeAppCompatActivityImport(
+    activityContent: String,
+): String {
+    val (before, after) = activityContent.split("import androidx.appcompat.app.AppCompatActivity")
+    return """
+    $before
+    $after    
+    """.trimIndent()
+}
+
+
 
 
