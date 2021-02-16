@@ -109,11 +109,30 @@ fun updateSuperClassToViewBind(activities: List<File>) {
             "ViewBindingActivity<$viewBindClassName>"
         )
     println(activityContent_vbImports_vbExtends)
+    val (before2, after2) = activityContent_vbImports_vbExtends.split("override fun onCreate(savedInstanceState: Bundle?) {")
+    StringBuilder(activityContent_vbImports_vbExtends)
+    val result = """
+    $before2
+    override val bindingInflater: (LayoutInflater) -> ActivityMainBinding
+        get() = $viewBindClassName::inflate
+    $after2    
+    """.trimIndent()
 
+    val result2 = result.replaceFirst("super.onCreate(savedInstanceState)", "override fun setup(){")
+    val (test,test2) = result2.split("setContentView(R.layout.activity_main)")
+
+    val result3 = """
+    $test
+    $test2    
+    """.trimIndent()
+
+
+    println("========================")
+    println(result3)
 
     // todo
     // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity [done]
-    // 2.replace AppCompatActivity => ViewBindingActivity<VB>
+    // 2.replace AppCompatActivity => ViewBindingActivity<VB> [done]
     // 3.find line that contain -> R.layout.activity_main [done]
     // 4. create viewbinding name of layout => activity_main -> ActivityMainBinding
     // 5. replace VB to viewbindingName
