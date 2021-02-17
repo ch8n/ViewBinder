@@ -26,6 +26,7 @@ fun main() {
 
     return
 
+
     val rootPath: String = KInquirer.promptInput(
         message = "Please paste root project path : ",
         default = "/Users/chetangupta/StudioProjects/ColorChetan"
@@ -71,64 +72,93 @@ fun updateSuperClassToViewBind(activities: List<File>) {
     // todo solve for multiple class
     val activity = activities.get(0)
     val activityContent = activity.readText(Charsets.UTF_8)
-    val packageName = activityContent.reader()
-        .readLines()
-        .getOrNull(0) ?: ""
-
-    val packageNameValue = packageName
-        .split("package")
-        .getOrNull(1)
-        ?.trim() ?: ""
-
+    val activityLines = activityContent.reader().readLines().toMutableList()
+    val packageNameLine = activityLines.first { it.contains("package") }
+    val (_, packageName) = packageNameLine.split("package")
     println(packageName)
-    println("--content---")
 
-    val layoutIdLine = activityContent.reader().readLines()
-        .first { it.contains("R.layout") }
+    val layoutLine = activityLines.first { it.contains("R.layout") }
+    val layoutName = layoutLine.split(".").last().dropLast(1)
+    println(layoutName)
 
-    val layoutFileName = layoutIdLine.split(".").last().dropLast(1)
-    val viewBindClassName = layoutFileName.split("_")
-        .map { it.capitalize() }
-        .joinToString("")
-        .let { "${it}Binding" }
+    val viewBindingClassName =
+        layoutName.split("_").joinToString(separator = "") { it.capitalize() }.let { "${it}Binding" }
+    println(viewBindingClassName)
 
-    val (before, after) = activityContent.split(packageName)
-
-    val activityContent_VBImports =
-        appendImportViewBindingActivity(after, packageNameValue, viewBindClassName)
-    println(activityContent_VBImports)
-    println("-======================--")
-
-    val activityContent_VBImportsOpt = removeAppCompatActivityImport(activityContent_VBImports)
-    println(activityContent_VBImportsOpt)
-    println("-======================--")
-
-    val activityContent_vbImports_vbExtends =
-        activityContent_VBImportsOpt.replaceFirst(
-            "AppCompatActivity",
-            "ViewBindingActivity<$viewBindClassName>"
-        )
-    println(activityContent_vbImports_vbExtends)
-    val (before2, after2) = activityContent_vbImports_vbExtends.split("override fun onCreate(savedInstanceState: Bundle?) {")
-    StringBuilder(activityContent_vbImports_vbExtends)
-    val result = """
-    $before2
-    override val bindingInflater: (LayoutInflater) -> ActivityMainBinding
-        get() = $viewBindClassName::inflate
-    $after2    
+    //------ working on imports ----//
+    // add base view binding imports
+    val syntheticImportIndex = activityLines.indexOfFirst { it.contains("kotlinx.android.synthetic") }
+    activityLines.removeAt(syntheticImportIndex)
+    activityLines.add(
+        syntheticImportIndex, """
+    import$packageName.base.ViewBindingActivity
+    import$packageName.databinding.$viewBindingClassName
     """.trimIndent()
+    )
+    // remove appCompact remote
+    val appCompactImportIndex = activityLines.indexOfFirst { it.contains("androidx.appcompat.app.AppCompatActivity") }
+    activityLines.removeAt(appCompactImportIndex)
 
-    val result2 = result.replaceFirst("super.onCreate(savedInstanceState)", "override fun setup(){")
-    val (test,test2) = result2.split("setContentView(R.layout.activity_main)")
+    //replace parent activity with viewbinding Activity
+    val superClassLineIndex = activityLines.indexOfFirst { it.contains(": AppCompatActivity") }
+    val viewBindSuperClass = activityLines.get(superClassLineIndex)
+        .replace("AppCompatActivity", "ViewBindingActivity<$viewBindingClassName>")
+    activityLines.removeAt(superClassLineIndex)
+    activityLines.add(superClassLineIndex, viewBindSuperClass)
+
+    // add viewbinding inflater method
+    activityLines.add(
+        superClassLineIndex + 1, """
+            
+            override val bindingInflater: (LayoutInflater) -> $viewBindingClassName
+                get() = $viewBindingClassName::inflate
+            """.trimIndent()
+    )
+
+    // replace onCreate with setup()
+    val indexSuperOnCreate = activityLines.indexOfFirst { it.contains("super.onCreate") }
+    activityLines.removeAt(indexSuperOnCreate)
+
+    val indexOnCreateFunction = activityLines.indexOfFirst { it.contains("fun onCreate(savedInstanceState") }
+    val setupFunction =
+        activityLines.get(indexOnCreateFunction).replace("onCreate(savedInstanceState: Bundle?)", "setup()")
+    activityLines.removeAt(indexOnCreateFunction)
+    activityLines.add(indexOnCreateFunction, setupFunction)
+
+    // remove content view
+    val indexContentView = activityLines.indexOfFirst { it.contains("setContentView") }
+    activityLines.removeAt(indexContentView)
+
+
+    println(activityLines.joinToString(separator = "\n"))
+
+
+
+    return
+
+
+    // val (before2, after2) = activityContent_vbImports_vbExtends.split("override fun onCreate(savedInstanceState: Bundle?) {")
+
+
+    // todo convert sting into mutableList delete lines that are not required!
+
+    val result2 = "".replaceFirst("super.onCreate(savedInstanceState)", "override fun setup(){")
+    val (test, test2) = result2.split("setContentView(R.layout.activity_main)")
 
     val result3 = """
     $test
     $test2    
     """.trimIndent()
 
+    val activty = StringBuilder(result3)
+    activity.forEachLine {
+        if (it.contains("class")) {
+            it.replace("class", "plass")
+        }
+    }
 
     println("========================")
-    println(result3)
+    println(activity.toString())
 
     // todo
     // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity [done]
