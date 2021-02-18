@@ -3,13 +3,12 @@ package com.ch8n.viewbinder
 
 import com.ch8n.viewbinder.utils.appendBuildFeatureViewBindingTemplate
 import com.ch8n.viewbinder.utils.appendBuildFeatureGradle
-import com.ch8n.viewbinder.utils.appendImportViewBindingActivity
-import com.ch8n.viewbinder.utils.removeAppCompatActivityImport
 import com.yg.kotlin.inquirer.components.promptConfirm
 import com.yg.kotlin.inquirer.components.promptInput
 import com.yg.kotlin.inquirer.core.Choice
 import com.yg.kotlin.inquirer.core.KInquirer
 import java.io.File
+import java.io.FileWriter
 
 
 object Config {
@@ -22,7 +21,7 @@ fun main() {
 
     val activity =
         listOf(File("/Users/chetangupta/StudioProjects/ColorChetan/app/src/main/java/com/example/colorapp/MainActivity.kt"))
-    updateSuperClassToViewBind(activity)
+    updateSuperClassToViewBind(activity, Config.projectRoot)
 
     return
 
@@ -64,14 +63,21 @@ fun main() {
         return
     }
 
-    updateSuperClassToViewBind(activities)
+    updateSuperClassToViewBind(activities, Config.projectRoot)
 
 }
 
-fun updateSuperClassToViewBind(activities: List<File>) {
+fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
     // todo solve for multiple class
     val activity = activities.get(0)
     val activityContent = activity.readText(Charsets.UTF_8)
+
+    if (activityContent.contains("ViewBindingActivity<")) {
+        println("ViewBindingActivity already found in ${activity.path}")
+        return
+    }
+
+
     val activityLines = activityContent.reader().readLines().toMutableList()
     val packageNameLine = activityLines.first { it.contains("package") }
     val (_, packageName) = packageNameLine.split("package")
@@ -93,6 +99,7 @@ fun updateSuperClassToViewBind(activities: List<File>) {
         syntheticImportIndex, """
     import$packageName.base.ViewBindingActivity
     import$packageName.databinding.$viewBindingClassName
+    import android.view.LayoutInflater
     """.trimIndent()
     )
     // remove appCompact remote
@@ -129,53 +136,51 @@ fun updateSuperClassToViewBind(activities: List<File>) {
     val indexContentView = activityLines.indexOfFirst { it.contains("setContentView") }
     activityLines.removeAt(indexContentView)
 
+    // find layout file
+    val layoutPath = "$projectRoot/app/src/main/res/layout"
+    val layoutFiles = File(layoutPath)
+    if (!layoutFiles.exists()) {
+        println("cant find layout folder")
+    }
 
-    println(activityLines.joinToString(separator = "\n"))
+    val fileName = layoutFiles.walk()
+        .first {
+            it.path.contains(layoutName)
+        }
 
+    val layoutIds: List<Pair<String/*layoutID*/, String/*bindingID*/>> = fileName.readText()
+        .lines()
+        .filter { it.contains("android:id=\"@+id/") }
+        .map {
+            it.split("android:id=\"@+id/")[1].dropLast(1)
+        }.map { id ->
+            val words = id.split("_")
+            val first = words.take(1)
+            val others = words.drop(1).map { it.capitalize() }
+            id to (first + others).joinToString(separator = "")
+        }
 
+    println(layoutIds)
 
-    return
-
-
-    // val (before2, after2) = activityContent_vbImports_vbExtends.split("override fun onCreate(savedInstanceState: Bundle?) {")
-
-
-    // todo convert sting into mutableList delete lines that are not required!
-
-    val result2 = "".replaceFirst("super.onCreate(savedInstanceState)", "override fun setup(){")
-    val (test, test2) = result2.split("setContentView(R.layout.activity_main)")
-
-    val result3 = """
-    $test
-    $test2    
-    """.trimIndent()
-
-    val activty = StringBuilder(result3)
-    activity.forEachLine {
-        if (it.contains("class")) {
-            it.replace("class", "plass")
+    // hack to concurrent override values
+    var bindingActivity = activityLines.toList()
+    layoutIds.forEach { (layoutId, bindingId) ->
+        println("$layoutId : $bindingId")
+        bindingActivity.mapIndexed { index, line ->
+            if (line.contains(layoutId)) {
+                val updatedLine = line.replace(layoutId, "binding.$bindingId")
+                activityLines.removeAt(index)
+                activityLines.add(index, updatedLine)
+            }
+            bindingActivity = activityLines.toList()
         }
     }
 
-    println("========================")
-    println(activity.toString())
-
-    // todo
-    // 1. add to import -> import com.example.colorapp.base.ViewBindingActivity [done]
-    // 2.replace AppCompatActivity => ViewBindingActivity<VB> [done]
-    // 3.find line that contain -> R.layout.activity_main [done]
-    // 4. create viewbinding name of layout => activity_main -> ActivityMainBinding
-    // 5. replace VB to viewbindingName
-    // 6. add import of viewbinding >> import com.example.colorapp.databinding.ActivityMainBinding
-    // find package name
-    // append naming convention
-    // 7. add functions
-    // 1. override val bindingInflater: (LayoutInflater) -> ActivityMainBinding get() = ActivityMainBinding::inflate
-    // 2. add setup()
-    // paste all the code from onCreate to step except line
-    // super.onCreate(savedInstanceState)
-    // setContentView(R.layout.activity_main)
-
+    val activityWithBindings = bindingActivity.toList()
+    println(activityWithBindings.joinToString(separator = "\n"))
+    val fileWriter = FileWriter(activity, false)
+    fileWriter.write(activityWithBindings.joinToString(separator = "\n"))
+    fileWriter.close()
 
 }
 
