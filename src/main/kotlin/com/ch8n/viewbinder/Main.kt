@@ -77,7 +77,6 @@ fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
         return
     }
 
-
     val activityLines = activityContent.reader().readLines().toMutableList()
     val packageNameLine = activityLines.first { it.contains("package") }
     val (_, packageName) = packageNameLine.split("package")
@@ -176,11 +175,24 @@ fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
         }
     }
 
-    val activityWithBindings = bindingActivity.toList()
+    val activityWithBindings = bindingActivity.toMutableList()
+
+
+    val indexSuperClass = activityWithBindings.indexOfFirst { it.contains("ViewBindingActivity<") }
+    activityWithBindings.add(
+        indexSuperClass - 1, """
+        /***
+        *   Migrated using Chetan-Gupta : AndroidBites View-binding Migrator
+        *   Thanks you for using my tool! , please leave bug reports and feature request
+        ****/
+    """.trimIndent()
+    )
+
     println(activityWithBindings.joinToString(separator = "\n"))
     val fileWriter = FileWriter(activity, false)
     fileWriter.write(activityWithBindings.joinToString(separator = "\n"))
     fileWriter.close()
+
 
 }
 
