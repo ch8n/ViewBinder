@@ -121,16 +121,6 @@ fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
             """.trimIndent()
     )
 
-    // replace onCreate with setup()
-    val indexSuperOnCreate = activityLines.indexOfFirst { it.contains("super.onCreate") }
-    activityLines.removeAt(indexSuperOnCreate)
-
-    val indexOnCreateFunction = activityLines.indexOfFirst { it.contains("fun onCreate(savedInstanceState") }
-    val setupFunction =
-        activityLines.get(indexOnCreateFunction).replace("onCreate(savedInstanceState: Bundle?)", "setup()")
-    activityLines.removeAt(indexOnCreateFunction)
-    activityLines.add(indexOnCreateFunction, setupFunction)
-
     // remove content view
     val indexContentView = activityLines.indexOfFirst { it.contains("setContentView") }
     activityLines.removeAt(indexContentView)
@@ -177,7 +167,6 @@ fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
 
     val activityWithBindings = bindingActivity.toMutableList()
 
-
     val indexSuperClass = activityWithBindings.indexOfFirst { it.contains("ViewBindingActivity<") }
     activityWithBindings.add(
         indexSuperClass - 1, """
@@ -192,7 +181,6 @@ fun updateSuperClassToViewBind(activities: List<File>, projectRoot: String) {
     val fileWriter = FileWriter(activity, false)
     fileWriter.write(activityWithBindings.joinToString(separator = "\n"))
     fileWriter.close()
-
 
 }
 
