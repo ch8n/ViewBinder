@@ -440,4 +440,9 @@ fun addViewBindingDependency(modulePath: String) {
         }
     }
 
+
+}
+
+inline fun test(crossinline action:()->Unit){
+    action.invoke()
 }
